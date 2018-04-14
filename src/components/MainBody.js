@@ -65,6 +65,7 @@ export class MainBody extends Component{
         this.processAssets = this.processAssets.bind(this)
         this.processOpenOrders = this.processOpenOrders.bind(this)
         this.apiErrorHandler = this.apiErrorHandler.bind(this)
+        this.processAssetsValues = this.processAssetsValues.bind(this)
     }
 
     componentDidMount(){
@@ -169,7 +170,7 @@ export class MainBody extends Component{
     /**
      * Handles received response after making API call to Binance to get all symbols from exchange.
      * 
-     * @param {Object} symbols - response from Binance
+     * @param {Object} symbols - response from Binance.
      */
     processSymbols(symbols){
 
@@ -189,10 +190,12 @@ export class MainBody extends Component{
     /**
      * Handles received response after making API call to Binance to get account's balances.
      * 
-     * @param {Object} symbols - response from Binance
+     * @param {Object} res - response from Binance.
      */
     processAssets(res){
         console.log('Received Assets')
+
+        this.requestAssetsValues(res)
 
         try{
             this.setState({
@@ -206,7 +209,7 @@ export class MainBody extends Component{
     /**
      * Handles received response after making API call to Binance to get open orders.
      * 
-     * @param {Object} symbols - response from Binance
+     * @param {Object} res - response from Binance.
      */
     processOpenOrders(res){
         console.log('Received Open Orders')
@@ -223,6 +226,7 @@ export class MainBody extends Component{
     /**
      * Handles error recieved while making API calls.
      * 
+     * @param {String} error - error message.
      */
     apiErrorHandler(error){
         this.stopCalls()
@@ -244,6 +248,27 @@ export class MainBody extends Component{
         }
     }
 
+    /**
+     * Requests values of assets from Binance
+     * 
+     * @param {[Object]} assets - array of assets  
+     */
+    requestAssetsValues(assets){
+
+        if (assets && this.binance){
+
+            let stream = "btceth@trade"
+            this.binance.createWebSocket(stream, this.processAssetsValues)
+        }
+        else {
+            console.log("Failed to request values of assets.")
+        }
+
+    }
+
+    processAssetsValues(values){
+        console.log("Success!!")
+    }
 
     render(){
         return (  

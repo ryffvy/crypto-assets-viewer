@@ -1,7 +1,8 @@
-const axios = require('axios')
-const crypto = require('crypto')
+import * as axios from 'axios'
+import * as crypto from 'crypto'
 
-const api_endpoint = "https://api.binance.com"
+const rest_endpoint = 'https://api.binance.com'
+const ws_endpoint = 'wss://stream.binance.com:9443/ws/'
 
 export class binanceAPI{
     constructor(key, secret){
@@ -9,7 +10,7 @@ export class binanceAPI{
         this.api_secret = secret
 
         this.axInstance = axios.create({
-            baseURL: api_endpoint,
+            baseURL: rest_endpoint,
             headers: {
                 common : {
                     "X-MBX-APIKEY" : this.api_key
@@ -26,6 +27,7 @@ export class binanceAPI{
      * Makes an API call to get open orders. 
      * 
      * @param {function} callback - the callback function that will be called when response is received.
+     * @param {function} errorHandler - function to handle error if one occurs.
      */
     getOpenOrders(callback, errorHandler){
         let query = 'timestamp=' + Date.now()
@@ -55,6 +57,7 @@ export class binanceAPI{
      * Makes an API call to get account balances. 
      * 
      * @param {function} callback - the callback function that will be called when response is received.
+     * @param {function} errorHandler - function to handle error if one occurs.
      */
     getAssets(callback, errorHandler){    
         let query = 'timestamp=' + Date.now()
@@ -83,6 +86,7 @@ export class binanceAPI{
      * Makes an API call to get all the symbols that are trading on Binance exchange. 
      * 
      * @param {function} callback - the callback function that will be called when response is received.
+     * @param {function} errorHandler - function to handle error if one occurs.
      */
     getSymbols(callback, errorHandler){
         
@@ -100,8 +104,30 @@ export class binanceAPI{
 
                 console.log("Failed to parse symbols: " + e)
             }}).catch(e => errorHandler(e))
-        }      
+        }
+        
+    /**
+     * Creates a websocket connection with Binance.
+     * 
+     * @param {String} stream - endpoint of the request.
+     * @param {function} callback - function to call after the connection has been successfully opened.
+     */        
+    createWebSocket(stream, callback){
 
+        if(this.ws){
+            this.ws.close();
+        }
+
+        try {
+            this.ws = new WebSocket(ws_endpoint + stream)
+            this.ws.onopen = () => console.log("Websocket connection established")
+            this.ws.onmessage = (res) => callback(res)
+            this.ws.onerror = (error) => console.log("Failed to establish stream connection with Binance: " + error)
+        } 
+        catch(e){
+            console.log("Failed to establish stream connection with Binance: " + e)
+        }
+    }
 }
 
 /**
