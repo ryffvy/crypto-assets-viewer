@@ -2,7 +2,7 @@ import * as axios from 'axios'
 import * as crypto from 'crypto'
 
 const rest_endpoint = 'https://api.binance.com'
-const ws_endpoint = 'wss://stream.binance.com:9443/ws/'
+const ws_endpoint = 'wss://stream.binance.com:9443/stream?streams='
 
 export class binanceAPI{
     constructor(key, secret){
@@ -119,7 +119,7 @@ export class binanceAPI{
         }
 
         try {
-            this.ws = new WebSocket(ws_endpoint + stream)
+            this.ws = new WebSocket(ws_endpoint +  stream)
             this.ws.onopen = () => console.log("Websocket connection established")
             this.ws.onmessage = (res) => callback(res)
             this.ws.onerror = (error) => console.log("Failed to establish stream connection with Binance: " + error)

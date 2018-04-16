@@ -8,7 +8,7 @@ export function TradesHistoryList(props){
 
     const columns = [{
         accessor: 'pair',
-        Header: 'Tradind Pair'
+        Header: 'Trading Pair'
     }, {
         accessor: 'price',
         Header: 'Price'

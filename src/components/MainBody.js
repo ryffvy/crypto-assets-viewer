@@ -46,8 +46,11 @@ export class MainBody extends Component{
         this.state = {
             numberSymbols: 0,
             assets : [],
-            openOrders : [],
+            totalValueBTC: null,
+            openOrders : []
         }
+
+        this.assetsValues = new Object()
 
         this.binance = new binanceAPI(props.api_key, props.api_secret)
 
@@ -66,6 +69,7 @@ export class MainBody extends Component{
         this.processOpenOrders = this.processOpenOrders.bind(this)
         this.apiErrorHandler = this.apiErrorHandler.bind(this)
         this.processAssetsValues = this.processAssetsValues.bind(this)
+        this.updateTotalValue = this.updateTotalValue.bind(this)
     }
 
     componentDidMount(){
@@ -75,13 +79,15 @@ export class MainBody extends Component{
         this.scheduleOpenOrdersCall()
         this.makeCalls()        
 
-        this.timers.makeCalls = setInterval(this.makeCalls, 1000)
+        this.timers.makeCalls = setInterval(this.makeCalls, 1100)
         
-        this.timers.scheduleAssets = setInterval(this.scheduleAssetsCall, 2000)
+        this.timers.scheduleAssets = setInterval(this.scheduleAssetsCall, 60000)
 
-        this.timers.scheduleSymbols = setInterval(this.scheduleSymbolsCall, 2000)
+        this.timers.scheduleSymbols = setInterval(this.scheduleSymbolsCall, 20000)
 
-        this.timers.scheduleOpenOrders = setInterval(this.scheduleOpenOrdersCall, 2000)
+        this.timers.scheduleOpenOrders = setInterval(this.scheduleOpenOrdersCall, 20000)
+
+        this.timers.updateTotalValue = setInterval(this.updateTotalValue, 1000)
     }
 
     componentWillUnmount(){
@@ -195,11 +201,11 @@ export class MainBody extends Component{
     processAssets(res){
         console.log('Received Assets')
 
-        this.requestAssetsValues(res)
+        this.requestAssetsValues(res.filter((asset) => asset.totalBalance > 0))
 
         try{
             this.setState({
-                assets : res
+                assets : res.filter((asset) => asset.totalBalance > 0)
             })
         }catch(e){
             console.log('Failed processing assets: ' + e)
@@ -254,11 +260,37 @@ export class MainBody extends Component{
      * @param {[Object]} assets - array of assets  
      */
     requestAssetsValues(assets){
-
         if (assets && this.binance){
 
-            let stream = "btceth@trade"
-            this.binance.createWebSocket(stream, this.processAssetsValues)
+            try{
+                let symb = ""
+                let stream = ""
+    
+                assets.forEach(element => {
+                    symb = element.symbol.toLowerCase()
+                    if (this.assetsValues[symb])
+                        this.assetsValues[symb].quantity = Number(element.totalBalance) 
+                    else 
+                        this.assetsValues[symb] = {quantity: Number(element.totalBalance), valueBTC: 0}
+    
+                    if (symb == 'btc'){
+                        this.assetsValues[symb].valueBTC = Number(element.totalBalance)
+                    }
+                    else {
+                        if (symb == 'usdt') stream += 'btc' + symb + '@kline_1m/'
+                        else stream += symb + 'btc@kline_1m/'
+                    }
+                })
+
+            
+                // trim last / from the stream
+                stream = stream.substring(0, stream.length-1)
+                console.log(stream)
+                this.binance.createWebSocket(stream, this.processAssetsValues)
+            }
+            catch(e){
+                console.log("Failed to create request for asset values: " + e)
+            }
         }
         else {
             console.log("Failed to request values of assets.")
@@ -266,15 +298,54 @@ export class MainBody extends Component{
 
     }
 
-    processAssetsValues(values){
-        console.log("Success!!")
+    /**
+     * Saves received value of asset in BTC.
+     * 
+     * @param {String} res - response message from Binance 
+     */
+    processAssetsValues(res){
+        try{
+            let data = JSON.parse(res.data).data
+            let symb = (data.s == 'BTCUSDT')?'usdt':data.s.substring(0, data.s.length - 3).toLowerCase()
+            this.assetsValues[symb].valueBTC = (symb === 'usdt')?1/(Number(data.k.c)):Number(data.k.c)
+        }
+        catch(e){
+            console.log("Failed parsing received asset value: " + e)
+        }
+    }
+
+    /**
+     * Updates the state with new total assets value
+     * 
+     */
+    updateTotalValue(){
+        let valueBTC = 0
+        let count = 0
+        let update = true
+
+        try{
+            for(let key in this.assetsValues){  
+                if (this.assetsValues[key].valueBTC != 0){       
+                    valueBTC += this.assetsValues[key].quantity * this.assetsValues[key].valueBTC
+                    console.log(key + ': ' + valueBTC)
+                }
+                else update = false
+                
+            }
+            console.log(this.state.assets.length)
+        }
+        catch(e){
+            console.log('Failed updating values of assets : ' + e)
+        }
+        
+        (update)?this.setState({totalValueBTC: valueBTC}):null
     }
 
     render(){
         return (  
             <Grid style={{width:'100%'}}>
                 <Row>      
-                    <Col sm={3} md={3} lg={3}><SummaryView symbols={this.state.numberSymbols}/></Col>
+                    <Col sm={3} md={3} lg={3}><SummaryView symbols={this.state.numberSymbols} totalValueBTC={this.state.totalValueBTC}/></Col>
                     <Col sm={9} md={9} lg={9}><DetailsView/></Col>
                 </Row>
                 <Row>
