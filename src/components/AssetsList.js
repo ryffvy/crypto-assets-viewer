@@ -4,7 +4,7 @@ import ReactTable from 'react-table'
 
 export function AssetsList(props){
     
-    const assets = props.assets
+    const assets = (props.assets)?props.assets:[]
 
     const columns = [{
         accessor: 'symbol',

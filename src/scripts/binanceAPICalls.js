@@ -41,7 +41,7 @@ export class binanceAPI{
                     price: Number(order.price),
                     quantity: Number(order.origQty),
                     type: order.type + ' ' + order.side,
-                    time: new Date(order.time),
+                    time: (new Date(order.time)).toLocaleString(),
                     id: order.orderId
                 }))
             }

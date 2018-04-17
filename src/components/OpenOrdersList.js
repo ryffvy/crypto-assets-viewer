@@ -4,7 +4,7 @@ import ReactTable from 'react-table'
 
 export function OpenOrdersList(props){
 
-    const openOrders = props.openOrders
+    const openOrders = (props.openOrders)?props.openOrders:[]
 
     const columns = [{
         accessor: 'symbol',
