@@ -10,12 +10,14 @@ const callLimit = 5
 const callWeights = {
     assets: 5,
     symbols: 1,
-    openTrades: callLimit
+    openTrades: callLimit,
+    valuesBTC: 1
 } 
 const callPriorities = {
     assets: 0,
     symbols: 0,
-    openTrades: 2
+    openTrades: 2,
+    valuesBTC: 0
 }
 
 /**
@@ -50,7 +52,7 @@ export class MainBody extends Component{
             openOrders : []
         }
 
-        this.assetsValues = new Object()
+        this.binancePricesBTC = new Object()
 
         this.binance = new binanceAPI(props.api_key, props.api_secret)
 
@@ -68,26 +70,26 @@ export class MainBody extends Component{
         this.processAssets = this.processAssets.bind(this)
         this.processOpenOrders = this.processOpenOrders.bind(this)
         this.apiErrorHandler = this.apiErrorHandler.bind(this)
-        this.processAssetsValues = this.processAssetsValues.bind(this)
         this.updateTotalValue = this.updateTotalValue.bind(this)
+        this.processPricesBTC = this.processPricesBTC.bind(this)
     }
 
     componentDidMount(){
         
         this.scheduleAssetsCall()
-        this.scheduleSymbolsCall()
         this.scheduleOpenOrdersCall()
+        this.schedulePricesBTCCall()
         this.makeCalls()        
 
         this.timers.makeCalls = setInterval(this.makeCalls, 1100)
         
         this.timers.scheduleAssets = setInterval(this.scheduleAssetsCall, 60000)
 
-        this.timers.scheduleSymbols = setInterval(this.scheduleSymbolsCall, 20000)
-
         this.timers.scheduleOpenOrders = setInterval(this.scheduleOpenOrdersCall, 20000)
 
-        this.timers.updateTotalValue = setInterval(this.updateTotalValue, 1000)
+        this.timers.schedulePricesBTCCall = setInterval(this.schedulePricesBTCCall, 5000)
+
+        this.timers.updateTotalValue = setInterval(this.updateTotalValue, 5000)
     }
 
     componentWillUnmount(){
@@ -141,22 +143,6 @@ export class MainBody extends Component{
             console.log("Scheduled Assets Rertieval")
         }
     }  
-    
-    /**
-     * Places a call for retrieval of symbols from Binance into the calls queue.
-     */
-    scheduleSymbolsCall = () => {
-        if (this.callsQueue){
-            this.callsQueue.queue({
-                function: this.binance.getSymbols,
-                callback: this.processSymbols,
-                time: Date.now(),
-                priority: callPriorities.symbols,
-                weight: callWeights.symbols
-            })
-            console.log("Scheduled Symbols Rertieval")
-        }
-    }
 
     /**
      * Places a call for retrieval of open orders into the calls queue.
@@ -171,6 +157,24 @@ export class MainBody extends Component{
                 weight: callWeights.openTrades
             })
         }
+        console.log("Scheduled Open Orders Rertieval")
+    }
+
+    /**
+     * Places a call for retrieval of assets values of all symbols 
+     * 
+     */
+    schedulePricesBTCCall = () => {
+        if(this.callsQueue){
+            this.callsQueue.queue({
+                function: this.binance.getPricesInBTC,
+                callback: this.processPricesBTC,
+                time: Date.now(),
+                priority: callPriorities.valuesBTC,
+                weight: callWeights.valuesBTC,
+            })
+        }
+        console.log("Scheduled All Prices in BTC")
     }
 
     /**
@@ -201,14 +205,32 @@ export class MainBody extends Component{
     processAssets(res){
         console.log('Received Assets')
 
-        this.requestAssetsValues(res.filter((asset) => asset.totalBalance > 0))
-
         try{
             this.setState({
                 assets : res.filter((asset) => asset.totalBalance > 0)
             })
         }catch(e){
             console.log('Failed processing assets: ' + e)
+        }
+    }
+
+    /**
+     * Handles received response after making API call to Binance to get values in BTC.
+     * 
+     * @param {Object} res - response from Binance in format : {symbol: , price: }
+     */
+    processPricesBTC(res){
+        try{
+            res.forEach((entry) => {
+                let symb = (entry.symbol === 'BTCUSDT')?'USDT':entry.symbol.substring(0, entry.symbol.length - 3)
+
+                if (entry.symbol.substring(entry.symbol.length - 3, entry.symbol.length) === "BTC") {
+                    this.binancePricesBTC[symb] = (symb === 'USDT')?1/(Number(entry.price)):Number(entry.price)
+                }
+            })
+        }
+        catch(e){
+            console.log("Failed to process values in BTC: " + e)
         }
     }
 
@@ -244,9 +266,9 @@ export class MainBody extends Component{
     stopCalls(){
         try{
             clearInterval(this.timers.scheduleAssets)
-            clearInterval(this.timers.scheduleSymbols)
             clearInterval(this.timers.scheduleOpenOrders)
             clearInterval(this.timers.makeCalls)
+            clearInterval(this.timers.schedulePricesBTCCall)
             console.log("Stopped making calls.")
         }
         catch(e){
@@ -255,90 +277,22 @@ export class MainBody extends Component{
     }
 
     /**
-     * Requests values of assets from Binance
-     * 
-     * @param {[Object]} assets - array of assets  
-     */
-    requestAssetsValues(assets){
-        if (assets && this.binance){
-
-            try{
-                let symb = ""
-                let stream = ""
-    
-                assets.forEach(element => {
-                    symb = element.symbol.toLowerCase()
-                    if (this.assetsValues[symb])
-                        this.assetsValues[symb].quantity = Number(element.totalBalance) 
-                    else 
-                        this.assetsValues[symb] = {quantity: Number(element.totalBalance), valueBTC: 0}
-    
-                    if (symb == 'btc'){
-                        this.assetsValues[symb].valueBTC = Number(element.totalBalance)
-                    }
-                    else {
-                        if (symb == 'usdt') stream += 'btc' + symb + '@kline_1m/'
-                        else stream += symb + 'btc@kline_1m/'
-                    }
-                })
-
-            
-                // trim last / from the stream
-                stream = stream.substring(0, stream.length-1)
-                console.log(stream)
-                this.binance.createWebSocket(stream, this.processAssetsValues)
-            }
-            catch(e){
-                console.log("Failed to create request for asset values: " + e)
-            }
-        }
-        else {
-            console.log("Failed to request values of assets.")
-        }
-
-    }
-
-    /**
-     * Saves received value of asset in BTC.
-     * 
-     * @param {String} res - response message from Binance 
-     */
-    processAssetsValues(res){
-        try{
-            let data = JSON.parse(res.data).data
-            let symb = (data.s == 'BTCUSDT')?'usdt':data.s.substring(0, data.s.length - 3).toLowerCase()
-            this.assetsValues[symb].valueBTC = (symb === 'usdt')?1/(Number(data.k.c)):Number(data.k.c)
-        }
-        catch(e){
-            console.log("Failed parsing received asset value: " + e)
-        }
-    }
-
-    /**
      * Updates the state with new total assets value
      * 
      */
     updateTotalValue(){
-        let valueBTC = 0
-        let count = 0
-        let update = true
-
-        try{
-            for(let key in this.assetsValues){  
-                if (this.assetsValues[key].valueBTC != 0){       
-                    valueBTC += this.assetsValues[key].quantity * this.assetsValues[key].valueBTC
-                    console.log(key + ': ' + valueBTC)
-                }
-                else update = false
-                
-            }
-            console.log(this.state.assets.length)
-        }
-        catch(e){
-            console.log('Failed updating values of assets : ' + e)
-        }
         
-        (update)?this.setState({totalValueBTC: valueBTC}):null
+        let valueBTC = 0
+
+        if (this.binancePricesBTC && this.state.assets){
+            this.state.assets.forEach((asset) => {
+                if(this.binancePricesBTC[asset.symbol]){
+                    valueBTC += asset.totalBalance * this.binancePricesBTC[asset.symbol]
+                }
+            })
+        }
+
+        this.setState({totalValueBTC: valueBTC})
     }
 
     render(){

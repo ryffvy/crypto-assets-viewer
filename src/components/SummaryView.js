@@ -6,8 +6,7 @@ export function SummaryView(props){
     return (
         <div>
             <h3>Summary: </h3>
-            <p>Total Asset Value: {(props.totalValueBTC)?props.totalValueBTC.toFixed(6) + ' BTC':'loading...'}</p> 
-            <p>Number of Symbols: {props.symbols}</p>
+            <p>Total Assets Value: {(props.totalValueBTC)?props.totalValueBTC.toFixed(6) + ' BTC':'loading...'}</p> 
         </div>
     )
 }

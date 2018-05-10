@@ -20,7 +20,7 @@ export class binanceAPI{
 
         this.getOpenOrders = this.getOpenOrders.bind(this)
         this.getAssets = this.getAssets.bind(this)
-        this.getSymbols = this.getSymbols.bind(this)
+        this.getPricesInBTC = this.getPricesInBTC.bind(this)
     }
 
     /**
@@ -81,32 +81,29 @@ export class binanceAPI{
             callback(balances)
         }).catch(e => errorHandler(e))
     }
-
+        
     /**
      * Makes an API call to get all the symbols that are trading on Binance exchange. 
      * 
      * @param {function} callback - the callback function that will be called when response is received.
      * @param {function} errorHandler - function to handle error if one occurs.
      */
-    getSymbols(callback, errorHandler){
-        
+    getPricesInBTC(callback, errorHandler){
+       
         // Retrieves all the symbols from the response and sends it as parameter to the callback function
-        this.axInstance.get('/api/v1/exchangeInfo').then(res => {
+        this.axInstance.get('/api/v3/ticker/price').then(res => {
 
             try{
-                
-                const symbols = res.data.symbols.map(obj => obj.symbol)
-
-                callback(symbols)
-
+                const data = res.data
+                callback(data)
             }
             catch(e){
 
                 console.log("Failed to parse symbols: " + e)
             }}).catch(e => errorHandler(e))
-        }
-        
-    /**
+    }
+    
+     /**
      * Creates a websocket connection with Binance.
      * 
      * @param {String} stream - endpoint of the request.
