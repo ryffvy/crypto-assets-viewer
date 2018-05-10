@@ -27,6 +27,6 @@ export function OpenOrdersList(props){
     }]
 
     return (
-        <div><p></p><ReactTable data={openOrders} columns={columns} style={{height: "525px"}} 
+        <div><p></p><ReactTable data={openOrders} columns={columns} style={{height: "440px"}} 
       showPagination={false} pageSize={openOrders.length}/></div>)
 }

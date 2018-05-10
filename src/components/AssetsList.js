@@ -21,7 +21,7 @@ export function AssetsList(props){
     }]
 
     return (
-      <div><p></p><ReactTable data={assets} columns={columns} style={{height: "525px"}} 
+      <div><p></p><ReactTable data={assets} columns={columns} style={{height: "440px"}} 
       showPagination={false} pageSize={assets.length}/></div>
     )
 }

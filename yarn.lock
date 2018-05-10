@@ -1541,6 +1541,10 @@ chardet@^0.4.0:
   version "0.4.2"
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.4.2.tgz#b5473b33dc97c424e5d98dc87d55d4d8a29c8bf2"
 
+chartkick@^2.3.5:
+  version "2.3.5"
+  resolved "https://registry.yarnpkg.com/chartkick/-/chartkick-2.3.5.tgz#9bfb086c003b332b636e31db8b185230e758a2d4"
+
 chokidar@^1.6.0:
   version "1.7.0"
   resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-1.7.0.tgz#798e689778151c8076b4b360e5edd28cda2bb468"
@@ -6131,6 +6135,12 @@ react-bootstrap@^0.32.1:
     react-transition-group "^2.0.0"
     uncontrollable "^4.1.0"
     warning "^3.0.0"
+
+react-chartkick@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/react-chartkick/-/react-chartkick-0.2.0.tgz#ab9cfab99452c15d7e55389df92908917af4a675"
+  dependencies:
+    chartkick "^2.3.5"
 
 react-dev-utils@^5.0.0:
   version "5.0.0"

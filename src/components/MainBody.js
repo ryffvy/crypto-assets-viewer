@@ -52,7 +52,8 @@ export class MainBody extends Component{
             openOrders : []
         }
 
-        this.binancePricesBTC = new Object()
+        this.binancePricesBTC = {BTC: 1}
+        this.assets = new Object()
 
         this.binance = new binanceAPI(props.api_key, props.api_secret)
 
@@ -88,8 +89,6 @@ export class MainBody extends Component{
         this.timers.scheduleOpenOrders = setInterval(this.scheduleOpenOrdersCall, 20000)
 
         this.timers.schedulePricesBTCCall = setInterval(this.schedulePricesBTCCall, 5000)
-
-        this.timers.updateTotalValue = setInterval(this.updateTotalValue, 5000)
     }
 
     componentWillUnmount(){
@@ -206,9 +205,7 @@ export class MainBody extends Component{
         console.log('Received Assets')
 
         try{
-            this.setState({
-                assets : res.filter((asset) => asset.totalBalance > 0)
-            })
+            this.assets = res.filter((asset) => asset.totalBalance > 0)
         }catch(e){
             console.log('Failed processing assets: ' + e)
         }
@@ -222,12 +219,15 @@ export class MainBody extends Component{
     processPricesBTC(res){
         try{
             res.forEach((entry) => {
+                
                 let symb = (entry.symbol === 'BTCUSDT')?'USDT':entry.symbol.substring(0, entry.symbol.length - 3)
 
-                if (entry.symbol.substring(entry.symbol.length - 3, entry.symbol.length) === "BTC") {
+                if (entry.symbol.substring(entry.symbol.length - 3, entry.symbol.length) === 'BTC' || symb == 'USDT') {
                     this.binancePricesBTC[symb] = (symb === 'USDT')?1/(Number(entry.price)):Number(entry.price)
                 }
             })
+
+            this.updateTotalValue()
         }
         catch(e){
             console.log("Failed to process values in BTC: " + e)
@@ -281,18 +281,30 @@ export class MainBody extends Component{
      * 
      */
     updateTotalValue(){
-        
-        let valueBTC = 0
+        let totalValueBTC = 0
+        let portfolio = this.assets
 
-        if (this.binancePricesBTC && this.state.assets){
-            this.state.assets.forEach((asset) => {
-                if(this.binancePricesBTC[asset.symbol]){
-                    valueBTC += asset.totalBalance * this.binancePricesBTC[asset.symbol]
-                }
+        // Update BTC values
+        for(let i in portfolio){
+            if(this.binancePricesBTC[portfolio[i].symbol]){
+                portfolio[i].valueBTC = portfolio[i].totalBalance * this.binancePricesBTC[portfolio[i].symbol]
+            }
+            else {
+                totalValueBTC = this.state.totalValueBTC
+                break
+            }
+        }
+
+        // Calculate total values
+        if (portfolio){
+            portfolio.forEach((asset) => {
+                totalValueBTC += asset.valueBTC
             })
         }
 
-        this.setState({totalValueBTC: valueBTC})
+        
+        this.setState({assets: portfolio})
+        this.setState({totalValueBTC: totalValueBTC})
     }
 
     render(){
@@ -300,7 +312,7 @@ export class MainBody extends Component{
             <Grid style={{width:'100%'}}>
                 <Row>      
                     <Col sm={3} md={3} lg={3}><SummaryView symbols={this.state.numberSymbols} totalValueBTC={this.state.totalValueBTC}/></Col>
-                    <Col sm={9} md={9} lg={9}><DetailsView/></Col>
+                    <Col sm={9} md={9} lg={9}><DetailsView portfolio={this.state.assets}/></Col>
                 </Row>
                 <Row>
                     <Col sm={12} md={12} lg={12}><ContentView assets={this.state.assets} openOrders={this.state.openOrders}/></Col>

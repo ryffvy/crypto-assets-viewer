@@ -21,7 +21,7 @@ export function TradesHistoryList(props){
     }]
 
     return (
-        <div><p></p><ReactTable data={data} columns={columns} style={{height: "525px"}} 
+        <div><p></p><ReactTable data={data} columns={columns} style={{height: "440px"}} 
         showPagination={false} pageSize={data.length}/></div>
       )
 }

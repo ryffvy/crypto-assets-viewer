@@ -10,6 +10,7 @@
     "js-priority-queue": "^0.1.5",
     "react": "^16.2.0",
     "react-bootstrap": "^0.32.1",
+    "react-chartkick": "^0.2.0",
     "react-dom": "^16.2.0",
     "react-scripts": "1.1.1",
     "react-table": "^6.8.0"
